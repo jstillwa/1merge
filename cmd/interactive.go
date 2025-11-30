@@ -23,11 +23,11 @@ func displayDuplicateGroup(groupKey string, items []models.Item) {
 	fmt.Printf("Found %d duplicate items:\n", len(items))
 
 	for i, item := range items {
-		maxLen := 8
-		if len(item.ID) < maxLen {
-			maxLen = len(item.ID)
+		idDisplay := item.ID
+		if len(item.ID) > 8 {
+			idDisplay = item.ID[:8] + "..."
 		}
-		fmt.Printf("  %d. %q (ID: %s...) - Updated: %s\n", i+1, item.Title, item.ID[:maxLen], formatTimestamp(item.UpdatedAt))
+		fmt.Printf("  %d. %q (ID: %s) - Updated: %s\n", i+1, item.Title, idDisplay, formatTimestamp(item.UpdatedAt))
 		if len(item.URLs) > 0 {
 			fmt.Printf("     URL: %s\n", item.URLs[0].HRef)
 		}

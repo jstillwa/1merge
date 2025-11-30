@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"1merge/internal/models"
-	"1merge/internal/op"
 )
 
 // FetchItems retrieves login items from 1Password
@@ -19,7 +18,7 @@ func FetchItems(vault string) ([]models.Item, error) {
 	}
 
 	// Execute the op command
-	output, err := op.RunOpCmd(args...)
+	output, err := opClient.RunOpCmd(args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch items from 1Password: %w", err)
 	}

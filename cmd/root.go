@@ -24,6 +24,10 @@ var rootCmd = &cobra.Command{
 	Long: `1Merge is a CLI tool that helps you identify and merge duplicate login entries
 in your 1Password vaults. It can scan your vault, find duplicates, and merge them
 automatically or with your confirmation.`,
+	// Error handling strategy:
+	// - Pre-flight errors (op CLI, fetch, grouping): abort immediately
+	// - Per-group errors (merge, apply): skip group and continue processing
+	// This ensures one bad group doesn't prevent processing of other duplicates.
 	Run: func(cmd *cobra.Command, args []string) {
 		if dryRun {
 			fmt.Println("Dry Run Mode Enabled")
@@ -31,13 +35,6 @@ automatically or with your confirmation.`,
 
 		// Verify op CLI is installed and user is signed in
 		if err := op.VerifyOpReady(); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			return
-		}
-
-		// Get whoami information to confirm authentication
-		_, err := op.GetWhoAmI()
-		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			return
 		}

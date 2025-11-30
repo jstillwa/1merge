@@ -3,15 +3,16 @@ package items
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"1merge/internal/models"
 	"1merge/internal/op"
 )
 
-// opClient is the injectable client for op CLI interactions, overridden in tests.
+// opClient is the shared injectable client for op CLI interactions in both applier and fetcher, overridden in tests.
 var opClient op.Client = op.DefaultClient
 
-// SetOpClient allows callers to override the op client (useful for testing).
+// SetOpClient allows callers to override the shared op client for both applier and fetcher operations (useful for testing).
 func SetOpClient(client op.Client) {
 	if client == nil {
 		opClient = op.DefaultClient
@@ -40,8 +41,24 @@ func ApplyMerge(winner models.Item, losers []models.Item, dryRun bool) error {
 		return nil
 	}
 
-	// Execute edit command
-	if err := opClient.RunOpCmdWithStdin(jsonBytes, "item", "edit", winner.ID); err != nil {
+	// Create temp file for item JSON template
+	tempFile, err := os.CreateTemp("", "1merge-*.json")
+	if err != nil {
+		return fmt.Errorf("failed to create temp file: %w", err)
+	}
+	defer os.Remove(tempFile.Name())
+
+	// Write JSON to temp file
+	if _, err := tempFile.Write(jsonBytes); err != nil {
+		tempFile.Close()
+		return fmt.Errorf("failed to write to temp file: %w", err)
+	}
+	if err := tempFile.Close(); err != nil {
+		return fmt.Errorf("failed to close temp file: %w", err)
+	}
+
+	// Execute edit command using template file
+	if _, err := opClient.RunOpCmd("item", "edit", winner.ID, "--template", tempFile.Name()); err != nil {
 		return fmt.Errorf("failed to edit item %s: %w", winner.ID, err)
 	}
 

@@ -47,9 +47,17 @@ func GroupDuplicates(items []models.Item) map[string][]models.Item {
 	return groups
 }
 
-// extractUsername finds the username field in an item and returns its value.
-// Returns empty string if no username field is found.
+// extractUsername extracts the username from an item.
+// When using "op item list", the username is in AdditionalInformation.
+// When using "op item get", it's in the Fields array with Type="username".
+// Returns empty string if no username is found.
 func extractUsername(item models.Item) string {
+	// First check AdditionalInformation (from "op item list")
+	if item.AdditionalInformation != "" {
+		return strings.ToLower(strings.TrimSpace(item.AdditionalInformation))
+	}
+
+	// Fall back to Fields array (from "op item get")
 	for _, field := range item.Fields {
 		if field.Type == "username" {
 			return strings.ToLower(strings.TrimSpace(field.Value))

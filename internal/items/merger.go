@@ -29,20 +29,33 @@ func SelectWinner(items []models.Item) models.Item {
 func CalculateMerge(winner models.Item, loser models.Item) (models.Item, error) {
 	// Deep copy the winner
 	merged := models.Item{
-		ID:        winner.ID,
-		Title:     winner.Title,
-		Vault:     winner.Vault,
-		Category:  winner.Category,
-		UpdatedAt: winner.UpdatedAt,
+		ID:                    winner.ID,
+		Title:                 winner.Title,
+		Vault:                 winner.Vault,
+		Category:              winner.Category,
+		UpdatedAt:             winner.UpdatedAt,
+		AdditionalInformation: winner.AdditionalInformation,
 	}
 
-	// Deep copy fields from winner
+	// Deep copy fields from winner, including deep copy of Section pointers
 	merged.Fields = make([]models.Field, len(winner.Fields))
-	copy(merged.Fields, winner.Fields)
+	for i, field := range winner.Fields {
+		merged.Fields[i] = field
+		if field.Section != nil {
+			sectionCopy := *field.Section
+			merged.Fields[i].Section = &sectionCopy
+		}
+	}
 
-	// Deep copy URLs from winner
+	// Deep copy URLs from winner and track if winner has a primary URL
+	winnerHasPrimary := false
 	merged.URLs = make([]models.URL, len(winner.URLs))
-	copy(merged.URLs, winner.URLs)
+	for i, url := range winner.URLs {
+		merged.URLs[i] = url
+		if url.Primary {
+			winnerHasPrimary = true
+		}
+	}
 
 	// Process loser's fields
 	for _, loserField := range loser.Fields {
@@ -72,7 +85,14 @@ func CalculateMerge(winner models.Item, loser models.Item) (models.Item, error) 
 	for _, loserURL := range loser.URLs {
 		if !urlExists(merged.URLs, loserURL.HRef) {
 			// Unique URL, add it
-			merged.URLs = append(merged.URLs, loserURL)
+			// If loser's URL is primary but winner already has a primary, demote loser's
+			if loserURL.Primary && winnerHasPrimary {
+				demotedURL := loserURL
+				demotedURL.Primary = false
+				merged.URLs = append(merged.URLs, demotedURL)
+			} else {
+				merged.URLs = append(merged.URLs, loserURL)
+			}
 		}
 	}
 
@@ -103,6 +123,8 @@ func urlExists(urls []models.URL, href string) bool {
 
 // getOrCreateArchivedConflictsSection searches for or creates an "Archived Conflicts" section.
 // All conflicting fields are grouped under this section.
+// Note: This creates a section reference without explicitly defining it in a sections array.
+// The 1Password CLI automatically creates sections when fields reference them during item edit.
 func getOrCreateArchivedConflictsSection(fields []models.Field) *models.Section {
 	// Search for existing "archived_conflicts" section
 	for i := range fields {

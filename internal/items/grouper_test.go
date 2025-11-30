@@ -338,6 +338,37 @@ func TestExtractUsername(t *testing.T) {
 		expected string
 	}{
 		{
+			name: "item with AdditionalInformation",
+			item: models.Item{
+				AdditionalInformation: "user@example.com",
+			},
+			expected: "user@example.com",
+		},
+		{
+			name: "AdditionalInformation takes precedence over Fields",
+			item: models.Item{
+				AdditionalInformation: "from_additional_info",
+				Fields: []models.Field{
+					{Type: "username", Value: "from_fields"},
+				},
+			},
+			expected: "from_additional_info",
+		},
+		{
+			name: "AdditionalInformation with mixed case is lowercased",
+			item: models.Item{
+				AdditionalInformation: "UserName@Example.COM",
+			},
+			expected: "username@example.com",
+		},
+		{
+			name: "AdditionalInformation with whitespace is trimmed",
+			item: models.Item{
+				AdditionalInformation: "  username  ",
+			},
+			expected: "username",
+		},
+		{
 			name: "item with username field",
 			item: models.Item{
 				Fields: []models.Field{

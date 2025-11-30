@@ -4,17 +4,19 @@ import "time"
 
 // Item represents a 1Password login item
 type Item struct {
-	ID        string    `json:"id"`
-	Title     string    `json:"title"`
-	URLs      []URL     `json:"urls"`
-	Vault     Vault     `json:"vault"`
-	Category  string    `json:"category"`
-	Fields    []Field   `json:"fields"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID                    string    `json:"id"`
+	Title                 string    `json:"title"`
+	URLs                  []URL     `json:"urls"`
+	Vault                 Vault     `json:"vault"`
+	Category              string    `json:"category"`
+	Fields                []Field   `json:"fields"`
+	UpdatedAt             time.Time `json:"updated_at"`
+	AdditionalInformation string    `json:"additional_information"`
 }
 
 // URL represents a URL associated with an item
 type URL struct {
+	Label   string `json:"label,omitempty"`
 	HRef    string `json:"href"`
 	Primary bool   `json:"primary"`
 }

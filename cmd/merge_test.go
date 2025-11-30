@@ -19,18 +19,15 @@ type stubOpClient struct {
 
 func (s *stubOpClient) RunOpCmd(args ...string) ([]byte, error) {
 	s.calls = append(s.calls, strings.Join(args, " "))
-	if s.archiveErr != nil {
+	// Check if this is an edit command
+	if len(args) >= 2 && args[0] == "item" && args[1] == "edit" && s.editErr != nil {
+		return nil, s.editErr
+	}
+	// Check if this is an archive (delete) command
+	if len(args) >= 2 && args[0] == "item" && args[1] == "delete" && s.archiveErr != nil {
 		return nil, s.archiveErr
 	}
 	return nil, nil
-}
-
-func (s *stubOpClient) RunOpCmdWithStdin(stdin []byte, args ...string) error {
-	s.calls = append(s.calls, "stdin:"+strings.Join(args, " "))
-	if s.editErr != nil {
-		return s.editErr
-	}
-	return nil
 }
 
 func TestApplyMergeAndReport_LogsSuccess(t *testing.T) {

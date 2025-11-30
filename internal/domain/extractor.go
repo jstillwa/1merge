@@ -50,8 +50,8 @@ func GetBaseDomain(urlStr string) (string, error) {
 		return hostname, nil
 	}
 
-	// Check for localhost or similar
-	if hostname == "localhost" || hostname == "127.0.0.1" || hostname == "::1" {
+	// Check for localhost hostname
+	if hostname == "localhost" {
 		return hostname, nil
 	}
 

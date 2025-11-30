@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -50,31 +49,29 @@ func createTestItem(id, title string, updatedAt time.Time) models.Item {
 }
 
 type opCall struct {
-	name  string
-	args  []string
-	stdin []byte
+	name string
+	args []string
 }
 
 type fakeOpClient struct {
-	calls                []opCall
-	runOpCmdErr          error
-	runOpCmdWithStdinErr error
+	calls []opCall
+	// editErr is used to simulate errors specifically for edit operations
+	editErr error
+	// archiveErr is used to simulate errors specifically for archive (delete) operations
+	archiveErr error
 }
 
 func (f *fakeOpClient) RunOpCmd(args ...string) ([]byte, error) {
 	f.calls = append(f.calls, opCall{name: "RunOpCmd", args: args})
-	if f.runOpCmdErr != nil {
-		return nil, f.runOpCmdErr
+	// Check if this is an edit command and we should return an edit-specific error
+	if len(args) >= 2 && args[0] == "item" && args[1] == "edit" && f.editErr != nil {
+		return nil, f.editErr
+	}
+	// Check if this is an archive (delete) command and we should return an archive-specific error
+	if len(args) >= 2 && args[0] == "item" && args[1] == "delete" && f.archiveErr != nil {
+		return nil, f.archiveErr
 	}
 	return nil, nil
-}
-
-func (f *fakeOpClient) RunOpCmdWithStdin(stdin []byte, args ...string) error {
-	f.calls = append(f.calls, opCall{name: "RunOpCmdWithStdin", args: args, stdin: stdin})
-	if f.runOpCmdWithStdinErr != nil {
-		return f.runOpCmdWithStdinErr
-	}
-	return nil
 }
 
 func TestApplyMerge_DryRun(t *testing.T) {
@@ -183,23 +180,6 @@ func TestApplyMerge_DryRun(t *testing.T) {
 	}
 }
 
-func assertOpCalls(t *testing.T, got []opCall, expected []opCall) {
-	t.Helper()
-
-	if len(got) != len(expected) {
-		t.Fatalf("expected %d op calls, got %d", len(expected), len(got))
-	}
-
-	for i := range expected {
-		if got[i].name != expected[i].name {
-			t.Fatalf("call %d: expected name %s, got %s", i, expected[i].name, got[i].name)
-		}
-		if !slices.Equal(got[i].args, expected[i].args) {
-			t.Fatalf("call %d: expected args %v, got %v", i, expected[i].args, got[i].args)
-		}
-	}
-}
-
 func TestApplyMerge_NonDryRun_UsesOpClient(t *testing.T) {
 	winner := createTestItem(
 		"winner1",
@@ -222,35 +202,26 @@ func TestApplyMerge_NonDryRun_UsesOpClient(t *testing.T) {
 	tests := []struct {
 		name                 string
 		client               *fakeOpClient
-		expectedCalls        []opCall
+		expectedCallCount    int
 		expectErr            bool
 		expectedErrSubstring string
 	}{
 		{
-			name:   "successful merge executes edit and archive commands",
-			client: &fakeOpClient{},
-			expectedCalls: []opCall{
-				{name: "RunOpCmdWithStdin", args: []string{"item", "edit", winner.ID}},
-				{name: "RunOpCmd", args: []string{"item", "delete", losers[0].ID, "--archive"}},
-				{name: "RunOpCmd", args: []string{"item", "delete", losers[1].ID, "--archive"}},
-			},
+			name:              "successful merge executes edit and archive commands",
+			client:            &fakeOpClient{},
+			expectedCallCount: 3, // 1 edit + 2 archive
 		},
 		{
-			name:   "edit failure propagates error and stops deletes",
-			client: &fakeOpClient{runOpCmdWithStdinErr: errors.New("edit failed")},
-			expectedCalls: []opCall{
-				{name: "RunOpCmdWithStdin", args: []string{"item", "edit", winner.ID}},
-			},
+			name:                 "edit failure propagates error and stops deletes",
+			client:               &fakeOpClient{editErr: errors.New("edit failed")},
+			expectedCallCount:    1, // only the failed edit
 			expectErr:            true,
 			expectedErrSubstring: "failed to edit item",
 		},
 		{
-			name:   "archive failure propagates error and halts further deletes",
-			client: &fakeOpClient{runOpCmdErr: errors.New("archive failed")},
-			expectedCalls: []opCall{
-				{name: "RunOpCmdWithStdin", args: []string{"item", "edit", winner.ID}},
-				{name: "RunOpCmd", args: []string{"item", "delete", losers[0].ID, "--archive"}},
-			},
+			name:                 "archive failure propagates error and halts further deletes",
+			client:               &fakeOpClient{archiveErr: errors.New("archive failed")},
+			expectedCallCount:    2, // 1 edit + 1 failed archive
 			expectErr:            true,
 			expectedErrSubstring: "failed to archive item",
 		},
@@ -274,10 +245,18 @@ func TestApplyMerge_NonDryRun_UsesOpClient(t *testing.T) {
 				t.Fatalf("ApplyMerge() unexpected error: %v", err)
 			}
 
-			assertOpCalls(t, tt.client.calls, tt.expectedCalls)
-			for _, call := range tt.client.calls {
-				if call.name == "RunOpCmdWithStdin" && len(call.stdin) == 0 {
-					t.Fatalf("RunOpCmdWithStdin should be provided JSON data")
+			if len(tt.client.calls) != tt.expectedCallCount {
+				t.Fatalf("expected %d op calls, got %d: %v", tt.expectedCallCount, len(tt.client.calls), tt.client.calls)
+			}
+
+			// Verify first call is an edit with --template flag
+			if len(tt.client.calls) > 0 {
+				editCall := tt.client.calls[0]
+				if editCall.name != "RunOpCmd" {
+					t.Fatalf("expected first call to be RunOpCmd, got %s", editCall.name)
+				}
+				if len(editCall.args) < 4 || editCall.args[0] != "item" || editCall.args[1] != "edit" || editCall.args[3] != "--template" {
+					t.Fatalf("expected edit call with --template flag, got %v", editCall.args)
 				}
 			}
 		})

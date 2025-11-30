@@ -452,7 +452,7 @@ func TestCalculateMerge(t *testing.T) {
 			},
 		},
 		{
-			name: "primary URL flag handling",
+			name: "primary URL flag handling - loser primary demoted when winner has primary",
 			winner: models.Item{
 				ID:    "1",
 				Title: "Winner",
@@ -470,19 +470,92 @@ func TestCalculateMerge(t *testing.T) {
 			expectedFieldCount: 0,
 			expectedURLCount:   2,
 			fieldCheck: func(t *testing.T, merged models.Item) {
-				primaryCount := 0
-				for _, url := range merged.URLs {
-					if url.Primary {
-						primaryCount++
-					}
-				}
 				// Verify winner's primary flag is preserved
 				if merged.URLs[0].Primary != true {
 					t.Errorf("winner's primary URL flag not preserved")
 				}
-				// Verify loser's primary URL is added as-is
+				// Verify loser's primary URL is demoted to non-primary
+				if merged.URLs[1].Primary != false {
+					t.Errorf("loser's primary flag should be demoted to false, got true")
+				}
+			},
+		},
+		{
+			name: "preserves AdditionalInformation from winner",
+			winner: models.Item{
+				ID:                    "1",
+				Title:                 "Winner",
+				AdditionalInformation: "Important notes about this account",
+				Fields:                []models.Field{{Label: "username", Value: "user1"}},
+			},
+			loser: models.Item{
+				ID:                    "2",
+				Title:                 "Loser",
+				AdditionalInformation: "Different notes",
+				Fields:                []models.Field{{Label: "email", Value: "test@example.com"}},
+			},
+			expectedFieldCount: 2,
+			expectedURLCount:   0,
+			fieldCheck: func(t *testing.T, merged models.Item) {
+				if merged.AdditionalInformation != "Important notes about this account" {
+					t.Errorf("AdditionalInformation not preserved from winner, got %q", merged.AdditionalInformation)
+				}
+			},
+		},
+		{
+			name: "deep copies sections to prevent shared pointer mutations",
+			winner: models.Item{
+				ID:    "1",
+				Title: "Winner",
+				Fields: []models.Field{
+					{
+						Label:   "field1",
+						Value:   "value1",
+						Section: &models.Section{ID: "section1"},
+					},
+					{
+						Label:   "field2",
+						Value:   "value2",
+						Section: &models.Section{ID: "section1"},
+					},
+				},
+			},
+			loser:              models.Item{ID: "2", Title: "Loser"},
+			expectedFieldCount: 2,
+			expectedURLCount:   0,
+			fieldCheck: func(t *testing.T, merged models.Item) {
+				// Verify sections are different pointers (deep copy)
+				if merged.Fields[0].Section == merged.Fields[1].Section {
+					t.Errorf("sections should be deep copied, got same pointer")
+				}
+				// But have same ID
+				if merged.Fields[0].Section.ID != merged.Fields[1].Section.ID {
+					t.Errorf("section IDs should match")
+				}
+			},
+		},
+		{
+			name: "loser primary URL preserved when winner has no primary",
+			winner: models.Item{
+				ID:    "1",
+				Title: "Winner",
+				URLs: []models.URL{
+					{HRef: "https://example.com", Primary: false},
+				},
+			},
+			loser: models.Item{
+				ID:    "2",
+				Title: "Loser",
+				URLs: []models.URL{
+					{HRef: "https://other.com", Primary: true},
+				},
+			},
+			expectedFieldCount: 0,
+			expectedURLCount:   2,
+			fieldCheck: func(t *testing.T, merged models.Item) {
+				// Winner has no primary, so loser's primary should be preserved
 				if merged.URLs[1].Primary != true {
-					t.Errorf("loser's primary flag not added correctly")
+					t.Errorf("loser's primary flag should be preserved when winner has no primary")
 				}
 			},
 		},
