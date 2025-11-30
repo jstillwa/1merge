@@ -18,15 +18,20 @@ Be respectful and constructive in all interactions. We're committed to maintaini
 
 1. Fork the repository
 2. Clone your fork:
+
    ```bash
    git clone https://github.com/your-username/1merge.git
    cd 1merge
    ```
+
 3. Add upstream remote:
+
    ```bash
    git remote add upstream https://github.com/jstillwa/1merge.git
    ```
+
 4. Create a feature branch:
+
    ```bash
    git checkout -b feature/your-feature-name
    ```
@@ -76,7 +81,8 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
 - **perf**: Performance improvements
 
 Example:
-```
+
+```git
 feat(merger): add support for merging custom fields
 
 Improve the merge logic to properly handle custom 1Password fields
@@ -120,6 +126,7 @@ while preserving field metadata.
 By contributing to 1merge, you agree that your contributions will be licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License (CC BY-NC-SA 4.0).
 
 This means:
+
 - Your contributions can be used for non-commercial purposes
 - Derivative works must be shared under the same license
 - Attribution to you should be maintained

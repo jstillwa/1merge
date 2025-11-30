@@ -1,16 +1,53 @@
-# Binary output
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.so.*
+*.dylib
 /1merge
+/bin/
+/dist/
 
-# Vendor directory
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.txt
+coverage.html
+
+# Dependency directories
 /vendor/
+go.work
 
-# IDE/editor files
+# Go workspace file
+go.work.sum
+
+# IDE/Editor files
 .DS_Store
 .idea/
 .vscode/
 *.swp
 *.swo
+*~
+.project
+.classpath
+*.c9/
+*.iml
+.sublime-*
 
-# Test coverage
-*.out
-coverage.txt
+# OS files
+Thumbs.db
+.env
+.env.local
+.env.*.local
+
+# Build directories
+build/
+tmp/
+
+# IDE directories
+__pycache__/
+.pytest_cache/
+node_modules/
