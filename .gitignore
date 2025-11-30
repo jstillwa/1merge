@@ -1,0 +1,16 @@
+# Binary output
+/1merge
+
+# Vendor directory
+/vendor/
+
+# IDE/editor files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Test coverage
+*.out
+coverage.txt
