@@ -10,7 +10,7 @@ import (
 	"1merge/internal/models"
 )
 
-func TestDisplayDuplicateGroup(t *testing.T) {
+func TestDisplayDuplicateGroup(_ *testing.T) {
 	// Create sample items with different titles, IDs, timestamps, and URLs
 	item1 := models.Item{
 		ID:        "abc12345abcd1234",

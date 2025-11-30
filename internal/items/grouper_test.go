@@ -134,8 +134,8 @@ func TestGroupDuplicates(t *testing.T) {
 			},
 			expectedGroups: 2,
 			expectedKeys: map[string]int{
-				"google.com|user@example.com":      2,
-				"amazon.com|admin@company.com":     2,
+				"google.com|user@example.com":  2,
+				"amazon.com|admin@company.com": 2,
 			},
 		},
 		{
@@ -221,14 +221,14 @@ func TestGroupDuplicates(t *testing.T) {
 			name: "missing URLs",
 			items: []models.Item{
 				{
-					ID: "1",
+					ID:   "1",
 					URLs: []models.URL{},
 					Fields: []models.Field{
 						{Type: "username", Value: "user@example.com"},
 					},
 				},
 				{
-					ID: "2",
+					ID:   "2",
 					URLs: []models.URL{},
 					Fields: []models.Field{
 						{Type: "username", Value: "user@example.com"},

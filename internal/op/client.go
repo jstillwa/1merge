@@ -34,7 +34,7 @@ func runOpCmdInternal(args ...string) ([]byte, error) {
 	if err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {
-			return nil, fmt.Errorf("op command failed: %s\nstderr: %s", err, stderr.String())
+			return nil, fmt.Errorf("op command failed: %w\nstderr: %s", err, stderr.String())
 		}
 		return nil, fmt.Errorf("op command failed: %w", err)
 	}
@@ -70,4 +70,3 @@ func VerifyOpReady() error {
 	}
 	return nil
 }
-

@@ -6,10 +6,11 @@ import (
 	"os"
 	"sort"
 
+	"github.com/spf13/cobra"
+
 	"1merge/internal/items"
 	"1merge/internal/models"
 	"1merge/internal/op"
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -28,7 +29,7 @@ automatically or with your confirmation.`,
 	// - Pre-flight errors (op CLI, fetch, grouping): abort immediately
 	// - Per-group errors (merge, apply): skip group and continue processing
 	// This ensures one bad group doesn't prevent processing of other duplicates.
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		if dryRun {
 			fmt.Println("Dry Run Mode Enabled")
 		}
